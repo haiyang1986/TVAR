@@ -7,7 +7,9 @@ python TVar_cpu.py -m fea -i ./input/input.vcf
 ```{r}
 # The input data file is the features file (also with labels)of non-coding variants. The following command is used to finish the model training process:
 python TVar_gpu.py -m train  -i ./input/input.gz
-# Train the model on the GTEx data set
+```
+```{r}
+Train the model on the GTEx data set
 python TVar_gpu.py -m cv  -i ./input/input.gz
 # Train the model with five-fold cross-validation
 ```
