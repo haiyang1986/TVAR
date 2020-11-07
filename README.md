@@ -9,7 +9,7 @@ python TVar_cpu.py -m fea -i ./input/input.vcf
 python TVar_gpu.py -m train  -i ./input/input.gz
 ```
 ```{r}
-Train the model on the GTEx data set
+# Train the model on the GTEx data set
 python TVar_gpu.py -m cv  -i ./input/input.gz
 # Train the model with five-fold cross-validation
 ```
