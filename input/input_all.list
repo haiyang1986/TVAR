@@ -1,0 +1,8 @@
+./eval/clinvar_20170130_snv_pos_non_coding.vcf
+./eval/clinvar_20170130_snv_neg_non_coding.vcf
+./eval/gwas_finemap_pos_non_coding.vcf
+./eval/gwas_finemap_neg_non_coding.vcf
+./eval/eQTL_GTEx_pos_non_coding.vcf
+./eval/eQTL_GTEx_neg_non_coding.vcf
+./eval/MPRA_Ryan_pos_non_coding.vcf
+./eval/MPRA_Ryan_neg_non_coding.vcf

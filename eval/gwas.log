@@ -1,0 +1,8 @@
+./score/Heart_Left_Ventricle_gwas_pos.tvar
+p-value of t test TVAR socres of GWAS and background: 1.21e-24
+./score/Pancreas_gwas_pos.tvar
+p-value of t test TVAR socres of GWAS and background: 1.6e-21
+./score/Breast_Mammary_Tissue_gwas_pos.tvar
+p-value of t test TVAR socres of GWAS and background: 7.01e-20
+./score/Brain_Hippocampus_gwas_pos.tvar
+p-value of t test TVAR socres of GWAS and background: 0.000145

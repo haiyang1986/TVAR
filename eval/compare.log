@@ -1,0 +1,8 @@
+./score/Heart_Left_Ventricle_gwas_pos.deepsea
+p-value of t test TVAR socres of GWAS and background: 5.29e-10
+./score/Pancreas_gwas_pos.deepsea
+p-value of t test TVAR socres of GWAS and background: 6.72e-08
+./score/Breast_Mammary_Tissue_gwas_pos.deepsea
+p-value of t test TVAR socres of GWAS and background: 8.2e-08
+./score/Brain_Hippocampus_gwas_pos.deepsea
+p-value of t test TVAR socres of GWAS and background: 0.000673

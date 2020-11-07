@@ -1,0 +1,16 @@
+./eval/Heart_Left_Ventricle_gwas_pos.gz
+./eval/Heart_Left_Ventricle_gwas_neg.gz
+./eval/Breast_Mammary_Tissue_gwas_pos.gz
+./eval/Breast_Mammary_Tissue_gwas_neg.gz
+./eval/Brain_Hippocampus_gwas_pos.gz
+./eval/Brain_Hippocampus_gwas_neg.gz
+./eval/Heart_Left_Ventricle_rare_pos.gz
+./eval/Heart_Left_Ventricle_rare_neg.gz
+./eval/Breast_Mammary_Tissue_rare_pos.gz
+./eval/Breast_Mammary_Tissue_rare_neg.gz
+./eval/Brain_Hippocampus_rare_pos.gz
+./eval/Brain_Hippocampus_rare_neg.gz
+./eval/Pancreas_gwas_pos.gz
+./eval/Pancreas_gwas_neg.gz
+./eval/Pancreas_rare_pos.gz
+./eval/Pancreas_rare_neg.gz

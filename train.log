@@ -1,0 +1,7 @@
+Train started!
+Training data loading...
+Training data loaded!
+(70232, 155) (70232, 49)
+3877937
+learning_rate: 0.000100, batch_size: 32
+Train finished!
