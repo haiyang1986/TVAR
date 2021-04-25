@@ -3,6 +3,7 @@ TVAR is a tissue-specific functional annotation tool of non-coding variants base
 ```{r}
 # The input data file is the vcf file of non-coding variants. The following command is used to finish the feature extraction process: 
 python TVar_cpu.py -m fea -i ./input/input.vcf
+# The feature extraction program requires downloading a large number of genome-wide annotation files. For details, see the paper "TVAR: Assessing Tissue-specific Functional Effects of Non-coding Variants with Deep Learning".
 ```
 ```{r}
 # The input data file is the features file (also with labels)of non-coding variants. The following command is used to finish the model training process:
@@ -19,3 +20,4 @@ python TVar.py -m score -i ./input/input.vcf
 # Generate the tissue-specific functional scores of the variants
 ```  
 TVAR is based on open-source Python 3.7.4 libraries. The deep learning network's implementation was based on Numpy 1.16.1, Scipy 1.1.0, Tensorlayer 1.11.1 (GPU version) and Tensorflow 1.14.0 (GPU version). After the testing, TVAR has been working correctly on Ubuntu Linux release 18.04. We used the NVIDIA Tesla T4 for model training and testing.
+In addition, in order to reproduce the relevant results of the paper "TVAR: Assessing Tissue-specific Functional Effects of Non-coding Variants with Deep Learning", the executable runtime environment is published at: https://gigantum.com/yhyh0910/tvar.
