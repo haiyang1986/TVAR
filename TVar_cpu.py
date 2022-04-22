@@ -1,5 +1,6 @@
 import argparse
 import sys
+
 import numpy as np
 
 np.random.seed(1)
@@ -8,20 +9,16 @@ import os
 from tempfile import mkdtemp
 from subprocess import check_output
 import matplotlib.pyplot as plt
-from pathos.pools import ProcessPool, ThreadPool
 import h5py
-import re
 import pandas as pd
 import pickle
-from os.path import splitext, basename, exists, abspath, isfile, getsize
+from os.path import splitext, basename, isfile, getsize
 from sklearn.decomposition import PCA
 from sklearn.metrics import roc_curve, auc
 from sklearn.metrics import precision_recall_curve, average_precision_score, roc_auc_score
-from sklearn import preprocessing
 from itertools import cycle
 from scipy import interp
-from scipy import stats
-from scipy.sparse import csc_matrix, save_npz, load_npz
+from multiprocessing import Pool
 
 
 class TVAR(object):
@@ -243,7 +240,7 @@ class TVAR(object):
             file_todo.append(splitext(basename(file.rstrip()))[0])
         threads_num = min(self.nb_threads, len(file_todo_paths))
         self.anno_todo_list = self.chunks(file_todo_paths, threads_num)
-        pool = ThreadPool(threads_num)
+        pool = Pool(threads_num)
         self.bed_file = bed_file
         ano_mat = pool.map(self.bed_annotate, range(threads_num))
         df = pd.concat(ano_mat, axis=1, sort=True)
@@ -262,7 +259,7 @@ class TVAR(object):
             file_todo.append(splitext(basename(file.rstrip()))[0])
         threads_num = min(self.nb_threads, len(file_todo_paths))
         self.anno_todo_list = self.chunks(file_todo_paths, threads_num)
-        pool = ThreadPool(threads_num)
+        pool = Pool(threads_num)
         self.bed_file = bed_file
         ano_mat = pool.map(self.bed_annotate, range(threads_num))
         df = pd.concat(ano_mat, axis=1, sort=True)
@@ -279,7 +276,7 @@ class TVAR(object):
             file_todo.append(splitext(basename(file.rstrip()))[0])
         threads_num = min(self.nb_threads, len(file_todo_paths))
         self.anno_todo_list = self.chunks(file_todo_paths, threads_num)
-        pool = ThreadPool(threads_num)
+        pool = Pool(threads_num)
         self.bed_file = bed_file
         ano_mat = pool.map(self.bed_annotate, range(threads_num))
         df = pd.concat(ano_mat, axis=1, sort=True)
@@ -294,7 +291,7 @@ class TVAR(object):
             file_todo.append(splitext(basename(file.rstrip()))[0])
         threads_num = min(self.nb_threads, len(file_todo_paths))
         self.anno_todo_list = self.chunks(file_todo_paths, threads_num)
-        pool = ThreadPool(threads_num)
+        pool = Pool(threads_num)
         self.bed_file = bed_file
         ano_mat = pool.map(self.norm01_annotate, range(threads_num))
         df = pd.concat(ano_mat, axis=1, sort=True)
@@ -337,7 +334,7 @@ class TVAR(object):
             file_todo_paths.append(filename.rstrip())
         threads_num = min(self.nb_threads, len(file_todo_paths))
         self.anno_todo_list = self.chunks(file_todo_paths, threads_num)
-        pool = ThreadPool(threads_num)
+        pool = Pool(threads_num)
         self.bed_file = bed_file
         ano_mat = pool.map(self.norm01_annotate, range(threads_num))
         df = df_ref.join(ano_mat)
@@ -369,7 +366,7 @@ class TVAR(object):
             threads_num = min(self.nb_threads, len(file_todo_paths))
             self.bed_file = tabix_file
             self.score_list = file_todo_paths
-            pool = ThreadPool(threads_num)
+            pool = Pool(threads_num)
             ano_mat = pool.map(self.bed_intersect_tib, range(threads_num))
             df = pd.concat(ano_mat, axis=1, sort=True)
             df.reset_index(inplace=True)
@@ -406,7 +403,7 @@ class TVAR(object):
         self.bed_file = vcf_file
         threads_num = min(self.nb_threads, len(chr_names))
         self.chr_todo_list = self.chunks(chr_names, threads_num)
-        pool = ThreadPool(threads_num)
+        pool = Pool(threads_num)
         ano_mat = pool.map(self.gene_annotation, range(threads_num))
         df = pd.concat(ano_mat, axis=0)
         del ano_mat
@@ -620,44 +617,34 @@ class TVAR(object):
             plt.legend(loc="lower right")
             plt.savefig(file_save)
 
-    def eval(self, y, thrs, file_save='clinvar_out.png', b_plot=True):
-        res_save = self.score_path + '/uk_labels.score'
-        thr_save = self.score_path + '/uk_labels.thr.npy'
-        norm_save = self.score_path + '/uk_labels.norm'
-        probas_ = self.score_load(res_save)
+    def eval(self, y, lables):
+        probas_ = y
         probas_norm = np.zeros(probas_.shape, dtype=int)
         nb_phewas = probas_.shape[1]
         aucs = []
         auc_norms = []
         thresholds = []
-        thrs = np.load(thr_save)
+        print(y.shape)
         for j in range(y.shape[1]):
             aucs.append([])
             auc_norms.append([])
             thresholds.append([])
         for j in range(nb_phewas):
-            # probas = probas_[:, j]
-            # y_phewas = y[:, j]
-            # aucs[j] = roc_auc_score(y_phewas, probas)
-            # fpr, tpr, threshold = roc_curve(y_phewas, probas)
-            # thresholds[j] = threshold[np.argmax(tpr - fpr)]
-            # thresholds[j] = thrs[j]
-            # i = np.arange(len(tpr))
-            # roc = pd.DataFrame({'tf': pd.Series(tpr - (1 - fpr), index=i), 'threshold': pd.Series(threshold, index=i)})
-            # roc_t = roc.ix[(roc.tf - 0).abs().argsort()[:1]]
-            # thresholds[j] = list(roc_t['threshold'])[0]
-            # i = np.arange(len(tpr))
-            # roc = pd.DataFrame({'tf': pd.Series(tpr - (1 - fpr), index=i), 'threshold': pd.Series(threshold, index=i)})
-            # roc_t = roc.ix[(roc.tf - 0).abs().argsort()[:1]]
-            # thresholds[j] = roc_t['threshold']
-            probas_tmp = np.where(probas_[:, j] > thrs[j], 1, 0)
+            probas = probas_[:, j]
+            y_phewas = lables[:, j]
+            aucs[j] = roc_auc_score(y_phewas, probas)
+            fpr, tpr, threshold = roc_curve(y_phewas, probas)
+            i = np.arange(len(tpr))
+            roc = pd.DataFrame({'tf': pd.Series(tpr - (1 - fpr), index=i), 'threshold': pd.Series(threshold, index=i)})
+            roc_t = roc.loc[(roc.tf - 0).abs().argsort()[:1]]
+            thresholds[j] = list(roc_t['threshold'])[0]
+            probas_tmp = np.where(probas_[:, j] > thresholds[j], 1, 0)
             probas_norm[:, j] = probas_tmp
             # auc_norms[j] = roc_auc_score(y_phewas, probas_tmp)
             # print(thresholds[j], aucs[j], auc_norms[j])
         # print(np.min(aucs), np.max(aucs), np.mean(aucs))
         # print(np.min(auc_norms), np.max(auc_norms), np.mean(auc_norms))
-
-        self.score_save(norm_save, probas_norm)
+        return probas_norm
 
     # Cross Validation and shows the performances
 
@@ -710,22 +697,12 @@ class TVAR(object):
         label_list = list(df_label)[4:]
         fp = open("auc.log", 'wt')
         for j in range(y.shape[1]):
-            fp.write("\'%s\' (AUC=%.3f)\n" % (label_list[i_top[j]], auc_out[i_top[j]]))
+            fp.write("%s %.3f\n" % (label_list[i_top[j]], auc_out[i_top[j]]))
         fp.close()
-        # print(thr_out)
-        # if thr_file is not None:
-        #     np.save(thr_file, thr_out)
-        # if b_plot:
-        #     plt.plot([0, 1], [0, 1], '--', color='navy', label='Luck')
-        #     plt.plot(mean_fpr, mean_tpr, 'k--', color='darkorange',
-        #              label='(AUC = %0.3f)' % mean_auc, lw=2)
-        #     plt.ylim([0.0, 1.05])
-        #     plt.xlim([0.0, 1.0])
-        #     plt.xlabel('False Positive Rate')
-        #     plt.ylabel('True Positive Rate')
-        #     plt.title('Variants prediction (ROC) with 4-fold cross validation')
-        #     plt.legend(loc="lower right")
-        #     plt.savefig(file_save)
+        fp = open("./aucs.txt", 'wt')
+        for j in range(len(auc_out)):
+            fp.write("%s\n" % (auc_out[j]))
+        fp.close()
 
     # show the performances of different approaches
     def show_pr_auc(self, y_list, label_list, name_list, plt, sub_id, title_txt='Variants prediction (ROC)'):
@@ -745,9 +722,7 @@ class TVAR(object):
 
     # show the performances of different approaches
     def show_roc_auc(self, fpr, tpr, methods_list, plt, sub_id, title_txt='Variants prediction (ROC)'):
-        # for i in methods_list:
-        #     roc_all = auc(fpr[i], tpr[i])
-        #     print(i, roc_all)
+
         colors = cycle(['black', 'blue', 'darkorange', 'seagreen', 'red', 'cyan', 'indigo'])
         plt.subplot(sub_id)
         for i in methods_list:
@@ -794,6 +769,63 @@ def main(argv=sys.argv):
         tvar.fea1_train(X1.values)
 
 
+    elif args.run_mode == 'exp':
+        top_n = 50
+        print('Train started!')
+        base_file = splitext(basename(args.file_input))[0]
+        fea_file = './fea/' + base_file + '.fea'
+        score_norm = './score/' + base_file + '.norm'
+        if isfile(fea_file):
+            print('Training data loading...')
+            df_fea = pd.read_hdf(fea_file, 'data')
+            df_label = pd.read_csv(score_norm, sep='\t')
+            print('Training data loaded!')
+        else:
+            print('run fea model first!')
+            return
+        X_list = list(df_fea)[4:]
+        print(X_list)
+        X = df_fea.iloc[:, 4:].values
+        y = df_label.iloc[:, 4:].values.astype(int)
+        model = RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0)
+        model.fit(X, y)
+        ranks = model.feature_importances_
+        i_top = np.argsort(ranks)[::-1][:top_n]
+        cols = [X_list[i] for i in i_top]
+        gini_scores = model.feature_importances_[i_top]
+        df_out = pd.DataFrame(data=gini_scores, dtype=float, columns=['gini score'], index=cols)
+        print(df_out)
+
+    elif args.run_mode == 'top':
+        gwas_in_file = './score/gwas.tvar'
+        gwas_ori_file = './score/GWAS.score'
+        cmd0 = 'sort -k1,1 -k2,2n %s -o %s' % (gwas_ori_file, gwas_ori_file)
+        check_output(cmd0, shell=True)
+        cmd2 = "bgzip -c %s > %s.gz" % (gwas_ori_file, gwas_ori_file)
+        check_output(cmd2, shell=True)
+        cmd1 = 'rm -f %s' % (gwas_ori_file)
+        check_output(cmd1, shell=True)
+        cmd3 = "tabix -s1 -b2 -e2 %s.gz" % (gwas_ori_file)
+        check_output(cmd3, shell=True)
+
+        top_n = 100
+        score_tvar = './score/gwas.tvar'
+        df = pd.read_csv(score_tvar, sep='\t', dtype={0: str, 1: int})
+        df_gwas = pd.read_csv(gwas_in_file, header=None, sep='\t', dtype={0: str, 1: int, 2: str, 3: str, 4: str})
+        df_gwas.columns = ['chr', 'pos', 'ref', 'alt', 'rs']
+        cols = list(df)[2:]
+        df['tvar'] = df[cols].max(axis=1)
+        df = df.sort_values(by=['tvar'], ascending=False)
+        df = df.iloc[0:top_n, [0, 1, -1]]
+        df = df.merge(df_gwas, on=['chr', 'pos'], how='left', indicator=True)
+        df = df.loc[df['_merge'] == 'both', ['chr', 'pos', 'ref', 'alt', 'rs', 'tvar']]
+        df = df.sort_values(by=['chr', 'pos'], ascending=[True, True])
+        df['chr'] = df['chr'].apply(lambda x: "chr" + str(x).replace("chr", ""))
+        df_vcf = df.loc[::, ['chr', 'pos', 'rs', 'ref', 'alt']]
+        df.to_csv('./score/gwas.tvar.top100', header=True, sep='\t', index=False)
+        df_vcf.to_csv('./score/gwas.top100.vcf', header=False, sep='\t', index=False)
+
+
     elif args.run_mode == 'cv':
         print('CV started!')
         base_file = splitext(basename(args.file_input))[0]
@@ -806,7 +838,7 @@ def main(argv=sys.argv):
         else:
             print('run fea model first!')
             return
-        y = df_label.iloc[:, 4:].as_matrix().astype(int)
+        y = df_label.iloc[:, 4:].values.astype(int)
         del df_label
         cv_labels = tvar.data_load(args.cv_out)
         print(cv_labels.shape)
@@ -816,18 +848,25 @@ def main(argv=sys.argv):
     elif args.run_mode == 'norm':
         print('Eval started!')
         base_file = splitext(basename(args.file_input))[0]
-        fea_file = './fea/' + base_file + '.fea'
-        thr_file = './score/' + base_file + '.thr.npy'
-        thrs = np.load(thr_file)
-        if isfile(args.file_input) and isfile(fea_file):
+        score_file = './score/' + base_file + '.tvar'
+        out_file = './score/' + base_file + '.norm'
+        df_label = pd.read_csv(args.file_input, sep='\t', compression='gzip')
+        labels = df_label.iloc[:, 4:].values.astype(int)
+        # thr_file = './score/' + base_file + '.thr.npy'
+        # thrs = np.load(thr_file)
+        # print(thrs.shape)
+        if isfile(args.file_input) and isfile(score_file):
             print('Eval data loading...')
-            df_label = pd.read_csv(args.file_input, sep='\t', compression='gzip')
+            df_label = pd.read_csv(score_file, sep='\t')
             print('Eval data loaded!')
         else:
             print('run fea model first!')
             return
-        y = df_label.iloc[:, 4:].as_matrix().astype(int)
-        tvar.eval(y, thrs)
+        mat = df_label.iloc[:, 2:].values
+        mat_norm = tvar.eval(mat, labels)
+        df_label.iloc[:, 2:] = mat_norm
+        df_label.to_csv(out_file, index=False, header=True, sep='\t')
+
 
     elif args.run_mode == 'clinvar':
         print('Eval clinvar started!')
@@ -841,7 +880,7 @@ def main(argv=sys.argv):
         else:
             print('run fea model first!')
             return
-        y = df_label.iloc[:, 4:].as_matrix().astype(int)
+        y = df_label.iloc[:, 4:].values.astype(int)
         tvar.auc_roc(y, score_file)
 
     elif args.run_mode == 'compare':
@@ -871,27 +910,6 @@ def main(argv=sys.argv):
         cv_labels = tvar.data_load(args.cv_out)
         print(y.shape, cv_labels.shape)
         tvar.compare_cv(dvar_file, divan_file, y, ids, ids_ori, cv_labels)
-
-    elif args.run_mode == 'ToR':
-        file_in = '/fs0/yangh8/env/TNET/env/input/uk_labels.gz'
-        base_file = splitext(basename(file_in))[0]
-        score_file = '/fs0/yangh8/env/TNET/env/score/' + base_file + '.norm'
-        label_out = '/fs0/yangh8/env/TNET/env/eval/' + base_file + '.label'
-        score_out = '/fs0/yangh8/env/TNET/env/eval/' + base_file + '.score'
-        print(isfile(file_in), isfile(score_file))
-        if isfile(file_in) and isfile(score_file):
-            df_label = pd.read_csv(file_in, sep='\t', compression='gzip')
-            np_scores = tvar.score_load(score_file)
-        else:
-            print('Loading error!')
-            return
-        y = df_label.iloc[:, 4:]
-        y = y.iloc[:, -50:]
-        del df_label
-        # y_score = pd.DataFrame(data=np_scores, dtype=np.float, columns=list(y))
-        y_score = pd.DataFrame(data=np_scores[:, -50:], dtype=np.float, columns=list(y))
-        y.to_csv(label_out, index=False, header=True, sep='\t')
-        y_score.to_csv(score_out, index=False, header=True, sep='\t')
 
 
 if __name__ == "__main__":

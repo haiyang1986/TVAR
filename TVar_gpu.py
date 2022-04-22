@@ -1,34 +1,29 @@
 import argparse
-import time
-import sys
 import os
-
-os.environ['PYTHONHASHSEED'] = '0'
-
-import random
-
-random.seed(1)
-
-import numpy as np
-
-np.random.seed(1)
-
-import tensorflow as tf
-
-tf.set_random_seed(1)
-import tensorlayer as tl
-
-import string
-import h5py
-import pandas as pd
 import pickle
-from os.path import splitext, basename, exists, abspath, isfile, getsize
-from sklearn.decomposition import PCA
+import random
+import sys
+import time
+from os.path import splitext, basename, isfile
+
+import h5py
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import tensorlayer as tl
 from sklearn import preprocessing
-from scipy import interp
-from scipy import stats
-from sklearn.utils.class_weight import compute_class_weight
+
 tl.logging.set_verbosity(tl.logging.INFO)
+
+
+def set_global_determinism(seed=0):
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    random.seed(seed)
+    tf.set_random_seed(seed)
+    np.random.seed(seed)
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+
 
 class DLF(object):
     def __init__(self):
@@ -59,8 +54,9 @@ class DLF(object):
         return
 
     # define the network
-    def train(self, sess, network, train_op, cost, X_train, y_train, x, y_, acc=None, batch_size=100, n_epoch=100, print_freq=5,
-            X_val=None, y_val=None, eval_train=True, early_stop= False, save_path =''):
+    def train(self, sess, network, train_op, cost, X_train, y_train, x, y_, acc=None, batch_size=100, n_epoch=100,
+              print_freq=5,
+              X_val=None, y_val=None, eval_train=True, early_stop=False, save_path=''):
         assert X_train.shape[0] >= batch_size, "Number of training examples should be bigger than the batch size"
         min_loss = float("inf")
         print("Start training the network ...")
@@ -123,7 +119,6 @@ class DLF(object):
                     print(
                         "Epoch %d of %d took %fs, loss %f" % (epoch + 1, n_epoch, time.time() - start_time, loss_ep))
         print("Total training time: %fs" % (time.time() - start_time_begin))
-
 
     def score(self, X, x, y_op, batch_size=None):
         if batch_size is None:
@@ -224,7 +219,7 @@ class DLF(object):
 
     def predict(self, X):
         y_op = tf.sigmoid(self.model.outputs)
-        return self.score(X, self.x, y_op,batch_size=64)
+        return self.score(X, self.x, y_op, batch_size=64)
 
 
 class TVAR(object):
@@ -347,6 +342,7 @@ def main(argv=sys.argv):
     parser.add_argument("-v", dest='cv_out', default="./input/tvar_cv.np", help="clinvar_pos")
     parser.add_argument("-n", dest='name_tissue', default="Heart_Left_Ventricle", help="clinvar_pos")
     args = parser.parse_args()
+    set_global_determinism()
     model_path = './model/'
     tvar = TVAR(args.threads_num, model_path, args.extend_len, args.cv)
 
@@ -362,8 +358,8 @@ def main(argv=sys.argv):
         else:
             print('run fea model first!')
             return
-        X = df_fea.iloc[:, 4:].as_matrix()
-        y = df_label.iloc[:, 4:].as_matrix().astype(int)
+        X = df_fea.iloc[:, 4:].values
+        y = df_label.iloc[:, 4:].values.astype(int)
         cv_labels = tvar.data_load(args.cv_out)
         del df_fea, df_label
         print(X.shape, y.shape)
@@ -383,9 +379,9 @@ def main(argv=sys.argv):
         else:
             print('run fea model first!')
             return
-        X = df_fea.iloc[:, 4:].as_matrix()
-        y = df_label.iloc[:, 4:].as_matrix().astype(int)
-        #shuffle
+        X = df_fea.iloc[:, 4:].values
+        y = df_label.iloc[:, 4:].values.astype(int)
+        # shuffle
         b_shuffle = False
         if b_shuffle:
             y_shape = y.shape
@@ -410,16 +406,16 @@ def main(argv=sys.argv):
             return
         df_label = pd.read_csv(label_file, sep='\t', compression='gzip')
         label_list = list(df_label)[4:]
-        X = df_fea.iloc[:, 4:].as_matrix()
+        X = df_fea.iloc[:, 4:].values
         scores = tvar.score(X)
-        #X_one = df_fea.iloc[:, 0:2]
-        #X_one['tvar'] = np.mean(scores, axis=1)
-        #X_one.to_csv(score_file, index=False, header=False, sep='\t')
+        # X_one = df_fea.iloc[:, 0:2]
+        # X_one['tvar'] = np.mean(scores, axis=1)
+        # X_one.to_csv(score_file, index=False, header=False, sep='\t')
         X_one = df_fea.iloc[:, 0:2]
-        X_score =pd.DataFrame(data=scores, dtype=np.float, columns=label_list)
+        X_score = pd.DataFrame(data=scores, dtype=np.float, columns=label_list)
         X_all = pd.concat([X_one, X_score], axis=1)
         print(X_all.shape, scores.shape)
-        #print (X_all.shape)
+        # print (X_all.shape)
         del df_fea
         X_all.to_csv(score_file, index=False, header=True, sep='\t')
         print('Score finished!')
@@ -437,18 +433,18 @@ def main(argv=sys.argv):
             return
         df_label = pd.read_csv(label_file, sep='\t', compression='gzip')
         label_list = list(df_label)[4:]
-        X = df_fea.iloc[:, 4:].as_matrix()
+        X = df_fea.iloc[:, 4:].values
         scores = tvar.score(X)
-        #X_one = df_fea.iloc[:, 0:2]
-        #X_one['tvar'] = np.mean(scores, axis=1)
-        #X_one.to_csv(score_file, index=False, header=False, sep='\t')
+        # X_one = df_fea.iloc[:, 0:2]
+        # X_one['tvar'] = np.mean(scores, axis=1)
+        # X_one.to_csv(score_file, index=False, header=False, sep='\t')
         X_one = df_fea.iloc[:, 0:2]
         # if tissue =='Brain_Caudate_basal_ganglia':
         #     tissue ='Brain_Anterior_cingulate_cortex_BA24'
-        X_score =pd.DataFrame(data=scores, dtype=np.float, columns=label_list).loc[:,tissue]
+        X_score = pd.DataFrame(data=scores, dtype=np.float, columns=label_list).loc[:, tissue]
         X_all = pd.concat([X_one, X_score], axis=1)
         print(X_all.shape, scores.shape)
-        #print (X_all.shape)
+        # print (X_all.shape)
         del df_fea
         X_all.to_csv(score_file, index=False, header=False, sep='\t')
         print('gwas finished!')
@@ -467,18 +463,18 @@ def main(argv=sys.argv):
         df_label = pd.read_csv(label_file, sep='\t', compression='gzip')
         label_list = list(df_label)[4:]
         print(label_list)
-        X = df_fea.iloc[:, 4:].as_matrix()
+        X = df_fea.iloc[:, 4:].values
         scores = tvar.score(X)
-        #X_one = df_fea.iloc[:, 0:2]
-        #X_one['tvar'] = np.mean(scores, axis=1)
-        #X_one.to_csv(score_file, index=False, header=False, sep='\t')
+        # X_one = df_fea.iloc[:, 0:2]
+        # X_one['tvar'] = np.mean(scores, axis=1)
+        # X_one.to_csv(score_file, index=False, header=False, sep='\t')
         X_one = df_fea.iloc[:, 0:2]
         # if tissue =='Brain_Caudate_basal_ganglia':
         #     tissue ='Brain_Anterior_cingulate_cortex_BA24'
-        X_score =pd.DataFrame(data=scores, dtype=np.float, columns=label_list).loc[:,tissue]
+        X_score = pd.DataFrame(data=scores, dtype=np.float, columns=label_list).loc[:, tissue]
         X_all = pd.concat([X_one, X_score], axis=1)
         print(X_all.shape, scores.shape)
-        #print (X_all.shape)
+        # print (X_all.shape)
         del df_fea
         X_all.to_csv(score_file, index=False, header=False, sep='\t')
         print('Rare finished!')
